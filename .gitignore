@@ -1,0 +1,50 @@
+# ---- OS ----
+.DS_Store
+Thumbs.db
+
+# ---- Editor ----
+.vscode/
+.idea/
+*.swp
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Node / React ----
+node_modules/
+dist/
+build/
+.vite/
+.next/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---- Env ----
+.env
+.env.*
+!.env.example
+
+# ---- Docker / DB ----
+*.sqlite
+*.sqlite3
+data/
+volumes/
+pgdata/
+
+# ---- n8n ----
+n8n_data/
+
+# ---- Models / Artifacts ----
+*.pkl
+*.joblib
+artifacts/
