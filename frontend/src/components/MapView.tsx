@@ -9,17 +9,19 @@ export interface District {
 
 interface Props {
   districts: District[];
+  viewBox: string;
   sggToRegionId: Map<string, number>;
   selectedRegionId: number | null;
   onSelect: (regionId: number) => void;
 }
 
 const COLOR_DEFAULT = "#ffffff";
-const COLOR_HOVER = "#ecfccb"; // 약한 연두 (lime-100)
-const COLOR_SELECTED = "#bef264"; // 조금 더 진한 연두 (lime-300)
+const COLOR_HOVER = "#ecfccb"; // lime-100
+const COLOR_SELECTED = "#bef264"; // lime-300
 
 export function MapView({
   districts,
+  viewBox,
   sggToRegionId,
   selectedRegionId,
   onSelect,
@@ -39,11 +41,11 @@ export function MapView({
 
   return (
     <svg
-      viewBox="0 0 1000 831"
+      viewBox={viewBox}
       style={{
         width: "100%",
         height: "100%",
-        background: "#eef2f7",
+        background: "#f8fafc", // 조금 더 밝은 배경
         fontFamily:
           '"Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif',
       }}
@@ -51,15 +53,25 @@ export function MapView({
     >
       <defs>
         <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur in="SourceAlpha" stdDeviation="5" />
-          <feOffset dx="0" dy="4" result="offsetblur" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="6" />
+          <feOffset dx="0" dy="6" result="offsetblur" />
           <feComponentTransfer>
-            <feFuncA type="linear" slope="0.4" />
+            <feFuncA type="linear" slope="0.3" />
           </feComponentTransfer>
           <feMerge>
             <feMergeNode />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
+        </filter>
+        {/* 외곽선을 더 단순하고 부드럽게 만드는 SVG 필터 */}
+        <filter id="smooth-edge" x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.0" result="blur" />
+          <feColorMatrix
+            in="blur"
+            mode="matrix"
+            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9"
+            result="smooth"
+          />
         </filter>
       </defs>
       {ordered.map((d) => {
@@ -89,18 +101,16 @@ export function MapView({
             <path
               d={d.path}
               fill={fill}
-              fillOpacity={1}
-              stroke={active ? "#3f6212" : "#475569"}
-              strokeWidth={active ? 2.5 : 1.2}
+              stroke={active ? "#4d7c0f" : "#64748b"}
+              strokeWidth={active ? 2.8 : 1.2}
               strokeLinejoin="round"
               strokeLinecap="round"
               style={{
-                // polylabel 좌표(구의 시각적 중심) 기준으로 확대 → 쏠림 없음
                 transformBox: "view-box",
                 transformOrigin: `${d.label[0]}px ${d.label[1]}px`,
-                transform: active ? "scale(1.2)" : "scale(1)",
-                transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
-                filter: active ? "url(#shadow)" : "none",
+                transform: active ? "scale(1.1)" : "scale(1)", // 1.2는 너무 커서 1.1로 조정
+                transition: "all 0.4s cubic-bezier(0.23, 1, 0.32, 1)",
+                filter: active ? "url(#shadow) url(#smooth-edge)" : "url(#smooth-edge)",
               }}
             />
             <text
@@ -108,17 +118,17 @@ export function MapView({
               y={d.label[1]}
               textAnchor="middle"
               dominantBaseline="middle"
-              fontSize={active ? 14 : 13}
-              fontWeight={active ? 800 : 500}
+              fontSize={active ? 15 : 13}
+              fontWeight={active ? 700 : 500}
               fill={selected ? "#1a2e05" : "#334155"}
               style={{
                 pointerEvents: "none",
                 userSelect: "none",
-                // path와 동일한 중심을 써서 글씨도 함께 균등 확대
                 transformBox: "view-box",
                 transformOrigin: `${d.label[0]}px ${d.label[1]}px`,
-                transform: active ? "scale(1.15)" : "scale(1)",
-                transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                transform: active ? "scale(1.1)" : "scale(1)",
+                transition: "all 0.4s cubic-bezier(0.23, 1, 0.32, 1)",
+                textShadow: active ? "0 0 8px rgba(255,255,255,0.8)" : "none",
               }}
             >
               {d.regionName}

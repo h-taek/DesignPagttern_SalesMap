@@ -40,7 +40,7 @@ n8n 노드 구성:
      ```
    - Timeout: 120s (OA-15572 응답 시간 + 행 수 고려).
    - Retry: 3회, 지수 백오프.
-3. **IF 노드**: `{{$json["succeededRegions"]}} > 0` 인지 확인. 모두 실패면 Predict 단계 건너뜀.
+3. **IF 노드**: `{{$json.acceptedRows}} > 0` 인지 확인 (Ingest 응답의 camelCase 필드). 새 분기 데이터가 없거나 전건 실패면 Predict 단계를 건너뛴다.
 4. **HTTP Request — Predict (AI)**:
    - Method: `POST`
    - URL: `http://host.docker.internal:8100/predict/batch`

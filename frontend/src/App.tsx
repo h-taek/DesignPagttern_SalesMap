@@ -26,17 +26,21 @@ export default function App() {
       <div
         style={{
           position: "absolute",
-          top: 16,
-          left: 16,
+          top: 20,
+          left: 20,
           zIndex: 1000,
-          background: "#fff",
-          padding: 12,
-          borderRadius: 8,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          background: "rgba(255, 255, 255, 0.95)",
+          backdropFilter: "blur(8px)",
+          padding: "16px 20px",
+          borderRadius: 12,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
           fontFamily: '"Noto Sans KR", sans-serif',
+          borderLeft: "4px solid #bef264",
         }}
       >
-        <h3 style={{ margin: "0 0 8px" }}>SalesMap — 서울시 매출·예측</h3>
+        <h3 style={{ margin: "0 0 12px", color: "#1e293b", fontSize: 18, fontWeight: 700 }}>
+          SalesMap <span style={{ fontWeight: 400, fontSize: 14, color: "#64748b", marginLeft: 4 }}>| 서울 상권 분석</span>
+        </h3>
         <IndustryToggle value={industry} onChange={setIndustry} />
         {regions.isError && (
           <p style={{ color: "#c00", fontSize: 12 }}>
@@ -47,6 +51,7 @@ export default function App() {
 
       <MapView
         districts={districts}
+        viewBox={seoulMap.viewBox}
         sggToRegionId={sggToRegionId}
         selectedRegionId={selectedRegionId}
         onSelect={setSelectedRegionId}

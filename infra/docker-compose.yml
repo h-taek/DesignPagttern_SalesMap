@@ -2,7 +2,7 @@ name: salesmap
 
 # Docker로 띄우는 것은 외부 의존 서비스만 (DB, n8n).
 # backend / ai는 각자 로컬 venv + uvicorn으로 실행한다. (GUIDELINE.md 참고)
-# frontend도 로컬 pnpm dev.
+# frontend도 로컬 npm dev.
 
 services:
   db:
