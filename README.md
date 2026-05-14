@@ -18,7 +18,7 @@
 | Database | PostgreSQL | Docker |
 | 배치 스케줄러 | n8n | Docker |
 
-전체 흐름은 [docs/02-architecture.md](docs/02-architecture.md), 실행 절차는 [docs/06-dev-setup.md](docs/06-dev-setup.md) 참고.
+전체 흐름은 [docs/02-architecture.md](docs/02-architecture.md), 실행 절차는 [GUIDELINE.md](GUIDELINE.md) 또는 [docs/06-dev-setup.md](docs/06-dev-setup.md) 참고.
 
 ## 디렉토리
 

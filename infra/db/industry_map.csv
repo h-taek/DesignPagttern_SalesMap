@@ -1,0 +1,10 @@
+svc_induty_cd,svc_induty_cd_nm,industry_category
+# OA-15572 서비스 업종 코드 → 대분류 (food / service / retail).
+# 100개 세부 업종을 코드정의서 기준으로 채워 넣음. 아래는 예시.
+CS100001,한식음식점,food
+CS100002,중식음식점,food
+CS100003,일식음식점,food
+CS200001,일반의류,retail
+CS200002,신발,retail
+CS300001,세탁소,service
+CS300002,미용실,service
