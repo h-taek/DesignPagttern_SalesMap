@@ -1,0 +1,49 @@
+"""SQLAlchemy 모델 — backend/app/models.py 와 동일 정의를 공유.
+
+MVP는 중복 정의를 허용한다 (docs/04-data-model.md). 변경 시 양쪽 동기화.
+"""
+
+from datetime import datetime
+
+from sqlalchemy import BigInteger, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.db import Base
+
+
+class Region(Base):
+    __tablename__ = "region"
+
+    region_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    region_name: Mapped[str] = mapped_column(String(20), nullable=False)
+    sgg_code: Mapped[str] = mapped_column(String(5), unique=True, nullable=False)
+
+
+class SalesRecord(Base):
+    __tablename__ = "sales_record"
+    __table_args__ = (
+        UniqueConstraint("region_id", "quarter", "industry_category", name="uq_sales_region_quarter_industry"),
+    )
+
+    sales_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    region_id: Mapped[int] = mapped_column(Integer, ForeignKey("region.region_id"), nullable=False)
+    quarter: Mapped[str] = mapped_column(String(6), nullable=False)
+    industry_category: Mapped[str] = mapped_column(String(10), nullable=False)
+    total_sales: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    total_count: Mapped[int | None] = mapped_column(BigInteger)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PredictionRecord(Base):
+    __tablename__ = "prediction_record"
+
+    prediction_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+    region_id: Mapped[int] = mapped_column(Integer, ForeignKey("region.region_id"), nullable=False)
+    industry_category: Mapped[str] = mapped_column(String(10), nullable=False)
+    target_quarter: Mapped[str] = mapped_column(String(6), nullable=False)
+    predicted_sales: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    previous_sales: Mapped[int | None] = mapped_column(BigInteger)
+    model_slope: Mapped[float | None] = mapped_column(Float)
+    model_intercept: Mapped[float | None] = mapped_column(Float)
+    samples_used: Mapped[int | None] = mapped_column(Integer)
+    generated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
