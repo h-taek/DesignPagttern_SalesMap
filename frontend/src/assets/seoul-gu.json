@@ -1,0 +1,38 @@
+{
+  "type": "FeatureCollection",
+  "_comment": "PLACEHOLDER — 서울 25개 자치구 실제 폴리곤으로 교체할 것. properties.sgg_code 가 backend region.sgg_code 와 매칭되어야 함. 출처 후보: github.com/southkorea/seoul-maps",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "sgg_code": "11680", "region_name": "강남구" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [127.02, 37.49],
+            [127.10, 37.49],
+            [127.10, 37.53],
+            [127.02, 37.53],
+            [127.02, 37.49]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "sgg_code": "11110", "region_name": "종로구" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [126.96, 37.57],
+            [127.02, 37.57],
+            [127.02, 37.60],
+            [126.96, 37.60],
+            [126.96, 37.57]
+          ]
+        ]
+      }
+    }
+  ]
+}
