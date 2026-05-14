@@ -28,21 +28,17 @@ cp ai/.env.example ai/.env
 # (Frontend는 Phase 4에서 추가)
 ```
 
-### 1-3. Python venv (로컬 dev)
+### 1-3. Python venv (단일 통합)
+
+backend / ai는 **레포 루트의 `.venv` 하나**를 공유한다. requirements는 서비스별로 유지(의존성 차이 명확화)하지만 같은 venv에 모두 설치.
 
 ```bash
-# backend
-cd backend && python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-cd ..
-
-# ai
-cd ai && python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-cd ..
+# 레포 루트에서
+python3 -m venv .venv
+.venv/bin/pip install -r backend/requirements.txt -r ai/requirements.txt
 ```
 
-3.14에서 `scikit-learn`/`pandas`/`numpy`가 빌드 실패하면 Python 3.11을 별도로 설치해 `python3.11 -m venv .venv`로 재생성하거나, **AI 서버는 Docker로만 돌린다**.
+3.14에서 `scikit-learn`/`pandas`/`numpy`가 빌드 실패하면 Python 3.11을 별도로 설치해 `python3.11 -m venv .venv`로 재생성한다.
 
 ## 2. 매일 동작
 
@@ -52,16 +48,19 @@ Docker로 띄우는 것은 외부 의존 서비스(DB, n8n)뿐. backend / ai / f
 # 1. 인프라 기동 (한 번만)
 cd infra
 docker compose up -d            # postgres + n8n
+cd ..
 
-# 2. backend (별도 터미널)
-cd backend && .venv/bin/uvicorn app.main:app --reload --port 8000
+# 2. backend (별도 터미널, 레포 루트에서)
+.venv/bin/uvicorn app.main:app --reload --port 8000 --app-dir backend
 
-# 3. ai (별도 터미널)
-cd ai && .venv/bin/uvicorn app.main:app --reload --port 8100
+# 3. ai (별도 터미널, 레포 루트에서)
+.venv/bin/uvicorn app.main:app --reload --port 8100 --app-dir ai
 
 # 4. frontend (별도 터미널, Phase 4 이후)
 cd frontend && pnpm dev
 ```
+
+> `--app-dir` 로 working dir만 바꿔 module을 해석시키고, venv는 루트 하나를 그대로 쓴다.
 
 ### 빠른 확인
 

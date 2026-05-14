@@ -91,32 +91,35 @@ docker compose up -d
 - n8n: `http://localhost:5678`
 - 최초 기동 시 `infra/db/init.sql`이 자동 실행되어 스키마 생성, `seed.sql`로 시드 적재.
 
-### 2. Backend
+### 2. Python venv (한 번만, 레포 루트)
+
+backend/ai는 **루트의 단일 `.venv`를 공유**한다.
 
 ```bash
-cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -e .
-cp .env.example .env
-uvicorn app.main:app --reload --port 8000
+python3 -m venv .venv
+.venv/bin/pip install -r backend/requirements.txt -r ai/requirements.txt
+```
+
+### 3. Backend
+
+```bash
+cp backend/.env.example backend/.env
+.venv/bin/uvicorn app.main:app --reload --port 8000 --app-dir backend
 ```
 
 - Swagger: `http://localhost:8000/docs`
 
-### 3. AI 서버
+### 4. AI 서버
 
 ```bash
-cd ai
-python -m venv .venv && source .venv/bin/activate
-pip install -e .
-cp .env.example .env
-uvicorn app.main:app --reload --port 8100
+cp ai/.env.example ai/.env
+.venv/bin/uvicorn app.main:app --reload --port 8100 --app-dir ai
 ```
 
 - Swagger: `http://localhost:8100/docs`
 - 동작 확인: `curl -X POST http://localhost:8100/predict/batch -H 'Content-Type: application/json' -d '{}'`
 
-### 4. Frontend
+### 5. Frontend
 
 ```bash
 cd frontend
@@ -127,7 +130,7 @@ pnpm dev
 
 - 브라우저: `http://localhost:5173`
 
-### 5. n8n 워크플로우
+### 6. n8n 워크플로우
 
 자세한 절차는 [07-batch-prediction.md](07-batch-prediction.md) 참고.
 
