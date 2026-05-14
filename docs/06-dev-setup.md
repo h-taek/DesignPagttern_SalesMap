@@ -77,6 +77,14 @@ npm install
 npm run dev
 ```
 
+### Step 6: 지도 데이터 재생성 (필요 시)
+자치구 경계가 바뀌거나 라벨 위치를 미세 조정해야 할 경우:
+```bash
+python3 frontend/scripts/build_districts.py
+```
+*   `frontend/scripts/seoul_municipalities_topo.json`을 읽어 `frontend/src/assets/seoul-districts.json`을 업데이트합니다.
+*   라벨 위치 수정은 스크립트 내 `LABEL_OFFSET` 딕셔너리를 활용합니다.
+
 ## 4. 데이터 초기 수집 (Ingest)
 
 서버 실행 후, 데이터가 없는 상태에서는 지도가 비어 보일 수 있습니다. n8n 워크플로우를 사용하거나 직접 API를 호출하여 데이터를 채워야 합니다.

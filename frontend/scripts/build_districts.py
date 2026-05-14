@@ -39,6 +39,7 @@ SMOOTH_SAMPLES = 12  # arc 한 세그먼트당 Catmull-Rom 보간점 수
 LABEL_OFFSET = {
     "11110": (-17.0, 0.0),  # 종로구 — 왼쪽으로 약간 이동
     "11140": (0.0, 0.0),    # 중구
+    "11470": (0.0, 10.0),    # 양천구 — 아래로 약간 이동
 }
 
 _HERE = Path(__file__).resolve().parent

@@ -38,6 +38,7 @@ cd SalesMap
 ```bash
 cp backend/.env.example backend/.env
 cp ai/.env.example ai/.env
+cp frontend/.env.example frontend/.env
 ```
 *   **중요:** `backend/.env`를 열어 `OPEN_API_KEY`에 발급받은 인증키를 넣으세요.
 *   [서울 열린데이터 광장](https://data.seoul.go.kr)에서 즉시 발급 가능합니다.
@@ -145,3 +146,15 @@ curl -X POST http://localhost:8100/predict/batch \
 *   [배치 및 예측 자동화 설명 (docs/07)](docs/07-batch-prediction.md)
 *   [프론트엔드 UI 설계 (docs/09)](docs/09-frontend.md)
 *   [디자인 패턴 적용 사례 (docs/10)](docs/10-design-patterns.md)
+
+---
+
+## 8. 개발자 가이드 (기타 도구)
+
+### 지도 데이터(SVG Path) 재생성
+자치구 경계가 바뀌거나 라벨 위치를 미세 조정해야 할 경우 아래 스크립트를 실행합니다.
+```bash
+python3 frontend/scripts/build_districts.py
+```
+*   `frontend/scripts/seoul_municipalities_topo.json`을 읽어 `frontend/src/assets/seoul-districts.json`을 생성합니다.
+*   구 이름별 라벨 오프셋은 스크립트 내 `LABEL_OFFSET` 변수에서 수정할 수 있습니다.
