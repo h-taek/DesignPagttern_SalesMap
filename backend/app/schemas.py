@@ -57,3 +57,23 @@ class SalesHistoryOut(_Out):
     region_id: int
     industry: IndustryCategory
     series: list[SalesHistoryItem] = Field(default_factory=list)
+
+
+class IngestRequest(BaseModel):
+    model_config = ConfigDict(alias_generator=_to_camel, populate_by_name=True)
+
+    region_ids: list[int] | None = None
+    quarters: list[str] | None = None
+    industries: list[IndustryCategory] | None = None
+    source: str = "OA-15572"
+
+
+class IngestResponse(_Out):
+    source: str
+    quarters: list[str]
+    industries: list[str]
+    processed_rows: int
+    accepted_rows: int
+    upserted_rows: int
+    failed_rows: int
+    errors: list[dict] = Field(default_factory=list)

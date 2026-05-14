@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS sales_record (
     total_sales        BIGINT NOT NULL,
     total_count        BIGINT,
     created_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (region_id, quarter, industry_category)
+    CONSTRAINT uq_sales_region_quarter_industry
+        UNIQUE (region_id, quarter, industry_category)
 );
 
 CREATE INDEX IF NOT EXISTS ix_sales_lookup

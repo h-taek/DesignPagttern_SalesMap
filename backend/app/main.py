@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.api import ingest as ingest_api
 from app.api import regions as regions_api
 from app.api import sales as sales_api
 from app.core.config import settings
@@ -40,6 +41,7 @@ app.add_middleware(RequestIdMiddleware)
 
 app.include_router(regions_api.router)
 app.include_router(sales_api.router)
+app.include_router(ingest_api.router)
 
 
 @app.get("/healthz")
