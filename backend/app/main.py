@@ -9,10 +9,9 @@ from app.api import ingest as ingest_api
 from app.api import regions as regions_api
 from app.api import sales as sales_api
 from app.core.config import settings
-from app.core.logging import configure_logging, get_logger
+from app.core.logging import configure_logging
 
 configure_logging()
-log = get_logger("backend")
 
 
 class RequestIdMiddleware(BaseHTTPMiddleware):

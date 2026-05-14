@@ -5,10 +5,9 @@ from fastapi import FastAPI, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api import predict as predict_api
-from app.core.logging import configure_logging, get_logger
+from app.core.logging import configure_logging
 
 configure_logging()
-log = get_logger("ai")
 
 
 class RequestIdMiddleware(BaseHTTPMiddleware):

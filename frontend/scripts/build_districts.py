@@ -136,55 +136,6 @@ def ring_centroid(ring: list) -> tuple[float, float]:
     return cx / (6 * a), cy / (6 * a)
 
 
-def _point_in_ring(x: float, y: float, ring: list) -> bool:
-    inside = False
-    n = len(ring)
-    j = n - 1
-    for i in range(n):
-        xi, yi = ring[i]
-        xj, yj = ring[j]
-        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
-            inside = not inside
-        j = i
-    return inside
-
-
-def _dist_to_segment(px, py, ax, ay, bx, by) -> float:
-    dx, dy = bx - ax, by - ay
-    if dx == 0 and dy == 0:
-        return math.hypot(px - ax, py - ay)
-    t = ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)
-    t = max(0.0, min(1.0, t))
-    return math.hypot(px - (ax + t * dx), py - (ay + t * dy))
-
-
-def label_point(rings: list, grid: int = 160) -> tuple[float, float]:
-    """polylabel(약식) — 폴리곤 내부에서 모든 경계로부터 가장 먼 격자점."""
-    outer = max(rings, key=lambda r: abs(ring_area(r)))
-    xs = [p[0] for p in outer]
-    ys = [p[1] for p in outer]
-    min_x, max_x = min(xs), max(xs)
-    min_y, max_y = min(ys), max(ys)
-    segments = [
-        (r[k][0], r[k][1], r[k + 1][0], r[k + 1][1])
-        for r in rings
-        for k in range(len(r) - 1)
-    ]
-    best = None
-    best_d = -1.0
-    for i in range(grid + 1):
-        x = min_x + (max_x - min_x) * i / grid
-        for j in range(grid + 1):
-            y = min_y + (max_y - min_y) * j / grid
-            if not _point_in_ring(x, y, outer):
-                continue
-            d = min(_dist_to_segment(x, y, *s) for s in segments)
-            if d > best_d:
-                best_d = d
-                best = (x, y)
-    return best if best is not None else ring_centroid(outer)
-
-
 # ---- main ------------------------------------------------------------------
 
 def main() -> None:

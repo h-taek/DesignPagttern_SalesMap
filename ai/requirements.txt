@@ -6,6 +6,5 @@ pydantic
 pydantic-settings
 scikit-learn
 numpy
-pandas
 structlog
 python-dotenv

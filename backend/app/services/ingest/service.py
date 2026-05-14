@@ -4,7 +4,6 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.repositories.sales import SalesRepository, SalesRow
 from app.schemas import IndustryCategory
 from app.services.ingest.adapter import NormalizedRow, OpenApiRowAdapter
