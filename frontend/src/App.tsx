@@ -1,17 +1,14 @@
 import { useMemo, useState } from "react";
-import type { FeatureCollection, Geometry } from "geojson";
 
 import { IndustryToggle } from "./components/IndustryToggle";
 import { MapView } from "./components/MapView";
+import type { District } from "./components/MapView";
 import { RegionPopup } from "./components/RegionPopup";
 import { useRegions } from "./hooks/useRegions";
 import type { Industry } from "./types";
-import rawGeojson from "./assets/seoul-gu.json";
+import seoulMap from "./assets/seoul-districts.json";
 
-const geojson = rawGeojson as unknown as FeatureCollection<
-  Geometry,
-  { sgg_code?: string }
->;
+const districts = seoulMap.districts as District[];
 
 export default function App() {
   const [industry, setIndustry] = useState<Industry>("food");
@@ -36,6 +33,7 @@ export default function App() {
           padding: 12,
           borderRadius: 8,
           boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+          fontFamily: '"Noto Sans KR", sans-serif',
         }}
       >
         <h3 style={{ margin: "0 0 8px" }}>SalesMap — 서울시 매출·예측</h3>
@@ -48,7 +46,7 @@ export default function App() {
       </div>
 
       <MapView
-        geojson={geojson}
+        districts={districts}
         sggToRegionId={sggToRegionId}
         selectedRegionId={selectedRegionId}
         onSelect={setSelectedRegionId}
@@ -56,6 +54,7 @@ export default function App() {
 
       {selectedRegionId !== null && (
         <RegionPopup
+          key={selectedRegionId}
           regionId={selectedRegionId}
           industry={industry}
           onClose={() => setSelectedRegionId(null)}

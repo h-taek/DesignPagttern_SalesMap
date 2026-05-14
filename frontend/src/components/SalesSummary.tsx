@@ -24,7 +24,7 @@ export function SalesSummary({ data }: Props) {
       {prediction ? (
         <div>
           <strong>{prediction.targetQuarter} 예측</strong>
-          <div style={{ fontSize: 20, color: "#2563eb" }}>
+          <div style={{ fontSize: 20, color: "#65a30d" }}>
             {won(prediction.predictedSales)}
           </div>
           <div style={{ color: "#888", fontSize: 12 }}>

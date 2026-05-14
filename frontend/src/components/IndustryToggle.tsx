@@ -21,11 +21,13 @@ export function IndustryToggle({ value, onChange }: Props) {
           onClick={() => onChange(opt.value)}
           style={{
             padding: "6px 12px",
-            border: "1px solid #ccc",
+            border: `1px solid ${opt.value === value ? "#bef264" : "#ccc"}`,
             borderRadius: 6,
-            background: opt.value === value ? "#2563eb" : "#fff",
-            color: opt.value === value ? "#fff" : "#333",
+            background: opt.value === value ? "#bef264" : "#fff",
+            color: opt.value === value ? "#1a2e05" : "#333",
+            fontWeight: opt.value === value ? 600 : 400,
             cursor: "pointer",
+            transition: "all 0.2s ease",
           }}
         >
           {opt.label}
