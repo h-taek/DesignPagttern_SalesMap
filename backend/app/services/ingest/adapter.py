@@ -28,6 +28,7 @@ _COL_SALES = ("THSMON_SELNG_AMT", "thsmon_selng_amt", "total_sales")
 _COL_COUNT = ("THSMON_SELNG_CO", "thsmon_selng_co", "total_count")
 _COL_SGG = ("SGG_CD", "sgg_code")
 _COL_DONG = ("ADSTRD_CD", "adstrd_cd", "dong_code")
+_COL_TRDAR = ("TRDAR_CD", "trdar_cd")
 
 
 def _pick(raw: dict, keys: tuple[str, ...]) -> str | None:
@@ -79,7 +80,9 @@ class OpenApiRowAdapter:
         if industry is None:
             return None, f"UNMAPPED_INDUSTRY:{svc_cd}"
 
-        region_id = self._region.resolve(_pick(raw, _COL_SGG), _pick(raw, _COL_DONG))
+        region_id = self._region.resolve(
+            _pick(raw, _COL_SGG), _pick(raw, _COL_DONG), _pick(raw, _COL_TRDAR)
+        )
         if region_id is None:
             return None, "UNMAPPED_REGION"
 

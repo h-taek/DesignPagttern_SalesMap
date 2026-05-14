@@ -1,7 +1,7 @@
 {
   "name": "SalesMap — 분기 수집·예측 배치",
   "meta": {
-    "description": "분기마다 (1) BE로 OA-15572 매출 수집·집계 → (2) AI로 다음 분기 예측. 멱등(upsert/이력 누적)이라 재실행 안전. 검증 시 Schedule을 짧은 주기로 두고, 운영은 분기 Cron으로 되돌린다. 인증: 두 HTTP 노드 모두 'X-Internal-Token' HTTP Header Auth credential 필요 (값 = 각 서버 .env의 INTERNAL_TOKEN)."
+    "description": "분기마다 (1) BE로 OA-15572 매출 수집·집계 → (2) AI로 다음 분기 예측. 멱등(upsert/이력 누적)이라 재실행 안전. 검증 시 Schedule을 짧은 주기로 두고, 운영은 분기 Cron으로 되돌린다. 인증: X-Internal-Token 헤더 사용 (값 = 각 서버 .env의 INTERNAL_TOKEN)."
   },
   "settings": {
     "executionOrder": "v1",
@@ -34,8 +34,16 @@
       "parameters": {
         "method": "POST",
         "url": "http://host.docker.internal:8000/api/ingest/sales",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Token",
+              "value": "dev-internal-token"
+            }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "{\n  \"regionIds\": null,\n  \"quarters\": null,\n  \"industries\": null,\n  \"source\": \"OA-15572\"\n}",
@@ -46,12 +54,6 @@
               "neverError": false
             }
           }
-        }
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "REPLACE_WITH_CREDENTIAL_ID",
-          "name": "SalesMap Internal Token"
         }
       },
       "retryOnFail": true,
@@ -95,19 +97,21 @@
       "parameters": {
         "method": "POST",
         "url": "http://host.docker.internal:8100/predict/batch",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Internal-Token",
+              "value": "dev-internal-token"
+            }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "{\n  \"regionIds\": null,\n  \"industries\": null,\n  \"targetQuarter\": null,\n  \"lookbackQuarters\": 16\n}",
         "options": {
           "timeout": 120000
-        }
-      },
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "REPLACE_WITH_CREDENTIAL_ID",
-          "name": "SalesMap Internal Token"
         }
       },
       "retryOnFail": true,

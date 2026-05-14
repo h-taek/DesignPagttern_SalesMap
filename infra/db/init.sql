@@ -15,6 +15,13 @@ CREATE TABLE IF NOT EXISTS region_dong_map (
     region_id  INT NOT NULL REFERENCES region(region_id)
 );
 
+-- 상권코드 → 자치구. OA-15572가 TRDAR_CD만 주므로 자치구 환원에 필요.
+-- 시드는 02-seed-trdar-map.sql (initdb 시 자동 실행, region seed 이후 순서).
+CREATE TABLE IF NOT EXISTS region_trdar_map (
+    trdar_code  CHAR(7) PRIMARY KEY,
+    region_id   INT NOT NULL REFERENCES region(region_id)
+);
+
 CREATE TABLE IF NOT EXISTS sales_record (
     sales_id           BIGSERIAL PRIMARY KEY,
     region_id          INT NOT NULL REFERENCES region(region_id),

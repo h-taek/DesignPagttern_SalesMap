@@ -63,13 +63,13 @@ export function MapView({
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
-        {/* 외곽선을 더 단순하고 부드럽게 만드는 SVG 필터 */}
-        <filter id="smooth-edge" x="-10%" y="-10%" width="120%" height="120%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="1.0" result="blur" />
+        {/* 외곽선을 더 단순하고 부드럽게 만드는 SVG 필터 (Gooey effect) */}
+        <filter id="smooth-edge" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="blur" />
           <feColorMatrix
             in="blur"
             mode="matrix"
-            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9"
+            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 30 -12"
             result="smooth"
           />
         </filter>

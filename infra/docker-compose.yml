@@ -18,8 +18,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-      - ./db/seed_dong_map.csv:/docker-entrypoint-initdb.d/seed_dong_map.csv:ro
-      - ./db/industry_map.csv:/docker-entrypoint-initdb.d/industry_map.csv:ro
+      - ./db/02-seed-trdar-map.sql:/docker-entrypoint-initdb.d/02-seed-trdar-map.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U salesmap -d salesmap"]
       interval: 5s

@@ -22,6 +22,15 @@ class RegionDongMap(Base):
     region_id: Mapped[int] = mapped_column(Integer, ForeignKey("region.region_id"), nullable=False)
 
 
+class RegionTrdarMap(Base):
+    """상권코드(OA-15560) → 자치구. OA-15572는 자치구 컬럼 없이 TRDAR_CD만 주므로 필요."""
+
+    __tablename__ = "region_trdar_map"
+
+    trdar_code: Mapped[str] = mapped_column(String(7), primary_key=True)
+    region_id: Mapped[int] = mapped_column(Integer, ForeignKey("region.region_id"), nullable=False)
+
+
 class SalesRecord(Base):
     __tablename__ = "sales_record"
     __table_args__ = (

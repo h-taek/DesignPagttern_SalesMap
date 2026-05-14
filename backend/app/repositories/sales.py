@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
-from app.models import Region, RegionDongMap, SalesRecord
+from app.models import Region, RegionDongMap, RegionTrdarMap, SalesRecord
 
 
 class SalesRow(TypedDict):
@@ -71,3 +71,7 @@ class SalesRepository:
     def list_dong_map(self) -> dict[str, int]:
         rows = self.session.scalars(select(RegionDongMap)).all()
         return {r.dong_code: r.region_id for r in rows}
+
+    def list_trdar_map(self) -> dict[str, int]:
+        rows = self.session.scalars(select(RegionTrdarMap)).all()
+        return {r.trdar_code.strip(): r.region_id for r in rows}

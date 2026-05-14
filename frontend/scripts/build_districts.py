@@ -34,12 +34,12 @@ SGG_CODE = {
 W = 1000
 PAD = 24
 SMOOTH_SAMPLES = 12  # arc 한 세그먼트당 Catmull-Rom 보간점 수 (더 부드럽게)
-SIMPLIFY_TOLERANCE = 0.0012  # Douglas-Peucker 단순화 임계값 (더 단순하게)
+SIMPLIFY_TOLERANCE = 0.002  # Douglas-Peucker 단순화 임계값 (더 단순하게)
 
 # polylabel 결과가 시각적으로 어색한 구의 라벨 미세 조정 (viewBox 좌표 오프셋).
 LABEL_OFFSET = {
-    "11110": (0.0, 35.0),   # 종로구 — 더 아래로 내려 중앙에 가깝게
-    "11140": (-55.0, 5.0),  # 중구 — 더 왼쪽으로 당김
+    "11110": (0.0, 40.0),   # 종로구 — 더 아래로 내려 중앙에 가깝게
+    "11140": (-60.0, 5.0),  # 중구 — 더 왼쪽으로 당김
 }
 
 _HERE = Path(__file__).resolve().parent
