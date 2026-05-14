@@ -5,8 +5,8 @@
 | 축 | 단위 | 비고 |
 |----|------|------|
 | 시간 | **분기** (`YYYYQn`, 예: `2024Q4`) | OA-15572가 분기 단위로만 제공. 공개 API로 가용한 월별 데이터 없음. |
-| 공간 | **자치구 25개** | 상권의 행정동 코드 → 자치구로 집계. |
-| 업종 | **대분류 3개** (`food` / `service` / `retail`) | 100개 세부 업종은 화면에는 안 쓰고, 적재는 위 3개로 사전 집계해서 저장. |
+| 공간 | **자치구 25개** | OA-15572의 상권 코드 → 자치구로 집계 (OA-15560 매핑 사용). |
+| 업종 | **대분류 3개** (`food` / `service` / `retail`) | 세부 업종(2024Q4 기준 62종)은 화면에 안 쓰고, 적재는 위 3개로 사전 집계해서 저장. |
 
 따라서 `region × quarter × industry_category` 가 분석 단위. 단일 셀의 의미는 "강남구의 2024Q4 외식업 합계 매출".
 
@@ -15,6 +15,7 @@
 ```
 region (1) ───< (N) sales_record
 region (1) ───< (N) prediction_record
+region (1) ───< (N) region_trdar_map
 ```
 
 업종은 ENUM/CHAR 컬럼으로만 표현하고 별도 테이블을 두지 않는다 (3개 고정).
@@ -31,17 +32,26 @@ region (1) ───< (N) prediction_record
 | `region_name` | `VARCHAR(20)` | NOT NULL | 예: "강남구" |
 | `sgg_code` | `CHAR(5)` | UNIQUE NOT NULL | 행정안전부 시군구 코드 (예: `11680`) |
 
+### `region_trdar_map`
+
+OA-15572의 상권 코드(`TRDAR_CD`)를 자치구로 환원하기 위한 정적 매핑 테이블.
+OA-15560(상권영역)에서 생성하며, `infra/db/02-seed-trdar-map.sql` 로 한 번 적재한다 (약 1,650행).
+
+| 컬럼 | 타입 | 제약 | 비고 |
+|------|------|------|------|
+| `trdar_code` | `CHAR(7)` | PK | 상권 코드 |
+| `region_id` | `INT` | FK → `region.region_id`, NOT NULL | 소속 자치구 |
+
 ### `region_dong_map`
 
-상권 데이터의 행정동 코드를 자치구로 묶기 위한 정적 매핑 테이블. CSV로 한 번 적재.
+행정동 코드를 자치구로 묶기 위한 정적 매핑 테이블 (예비). OA-15572 적재 자체는
+`region_trdar_map` 으로 해결되며, 이 테이블은 행정동 단위 데이터를 다룰 때를 위한 자리.
 
 | 컬럼 | 타입 | 제약 | 비고 |
 |------|------|------|------|
 | `dong_code` | `CHAR(10)` | PK | 행정동 코드 |
 | `dong_name` | `VARCHAR(40)` | NOT NULL | |
 | `region_id` | `INT` | FK → `region.region_id`, NOT NULL | 소속 자치구 |
-
-> 빠른 길로는 `region_id`를 컬럼에 두지 않고, 매번 `LEFT(dong_code, 5) = sgg_code`로 조인하는 방법도 가능. MVP는 명시적 매핑 테이블이 디버깅에 편하다.
 
 ### `sales_record`
 
@@ -87,25 +97,24 @@ OA-15572의 주요 컬럼과 본 스키마의 매핑.
 
 | OA-15572 원본 컬럼 | 처리 | sales_record 매핑 |
 |------|------|------|
-| `기준_년_분기_코드` (예: `20244`) | `f"{c[:4]}Q{c[4]}"` | `quarter` (`2024Q4`) |
-| `상권_코드`, `상권_구분_코드_명` | 상권의 행정동 코드 조회용 | (참고만, 저장 안 함) |
-| 상권 → 행정동 코드 | `region_dong_map` 으로 자치구로 환원 | `region_id` |
-| `서비스_업종_코드` 또는 `서비스_업종_코드_명` | 100개 → 3개 대분류 매핑 | `industry_category` |
-| `당월_매출_금액` (분기 합계 매출) | 같은 (구, 분기, 대분류) 합산 | `total_sales` (SUM) |
-| `당월_매출_건수` | 합산 | `total_count` (SUM) |
+| `STDR_YYQU_CD` (예: `20244`) | `f"{c[:4]}Q{c[4]}"` | `quarter` (`2024Q4`) |
+| `TRDAR_CD` (상권 코드) | `region_trdar_map` 으로 자치구 환원 | `region_id` |
+| `SVC_INDUTY_CD` (세부 업종 코드) | `industry_map.csv`로 3개 대분류 매핑 | `industry_category` |
+| `THSMON_SELNG_AMT` (분기 합계 매출) | 같은 (구, 분기, 대분류) 합산 | `total_sales` (SUM) |
+| `THSMON_SELNG_CO` (분기 합계 건수) | 합산 | `total_count` (SUM) |
 | 그 외 (요일/시간대/성연령 분해) | MVP 미사용 | — |
 
-> 일부 연도 컬럼명이 `당월_매출_금액` 으로 표기되지만 OA-15572는 본문상 분기 합계임 (서울 열린데이터 문서 참조). 적재 스크립트에 단위/명세 검증 단계를 둔다.
+> 컬럼명이 `THSMON_SELNG_AMT`("당월")로 표기되지만 OA-15572는 본문상 분기 합계임.
+> OA-15572 원본에는 자치구·행정동 컬럼이 없어 `TRDAR_CD` → 자치구 환원에 OA-15560을 보조로 쓴다 ([08-external-api.md](08-external-api.md) 참조).
 
-### 업종 매핑 룰 (`서비스_업종_코드` → `industry_category`)
+### 업종 매핑 룰 (`SVC_INDUTY_CD` → `industry_category`)
 
-`infra/db/industry_map.csv`로 분리해 두고 변경 가능. 초기 룰:
+`infra/db/industry_map.csv`로 분리해 두고 변경 가능. `backend/scripts/build_maps.py`가
+OA-15572 실데이터의 distinct 업종 코드를 추출해 자동 생성한다. 코드 prefix 규칙:
 
-- 외식업 10종 → `food`
-- 서비스업 47종 → `service`
-- 소매업 43종 → `retail`
-
-코드 그룹의 정확한 경계는 OA-15572 코드 정의서 기준으로 한 번에 채워 넣는다.
+- `CS1xxxxx` 외식업 → `food`
+- `CS2xxxxx` 서비스업 → `service`
+- `CS3xxxxx` 소매업 → `retail`
 
 ## ORM 매핑 (예시)
 
@@ -147,12 +156,13 @@ class PredictionRecord(Base):
 
 ## 적재 / 시드 전략
 
-1. **정적 데이터** (한 번만 적재):
-   - `region` 25행 — `infra/db/seed_region.sql`.
-   - `region_dong_map` ~425행 — `infra/db/seed_dong_map.csv` → `init.sql`에서 `COPY`.
-2. **OA-15572 CSV** (분기마다 또는 최초 1회):
-   - `backend/scripts/load_csv.py`: CSV 파싱 → 업종 대분류 매핑 → 구 단위 합산 → `sales_record` upsert.
-   - 분기 새로 들어오면 동일 스크립트를 다시 돌리면 됨.
-3. **`prediction_record`** — n8n 배치가 채움.
+1. **정적 데이터** (`docker compose up` 시 initdb 단계에서 자동 적재):
+   - `region` 25행 — `infra/db/init.sql` 의 `INSERT`.
+   - `region_trdar_map` ~1,650행 — `infra/db/02-seed-trdar-map.sql`.
+   - 두 매핑 파일(`industry_map.csv`, `02-seed-trdar-map.sql`)은 `backend/scripts/build_maps.py`로 OA-15560/15572에서 재생성한다.
+2. **OA-15572 매출 데이터** (분기마다 또는 최초 1회):
+   - `POST /api/ingest/sales` (BE) — 외부 API 호출 → 어댑터 정규화 → 구 단위 합산 → `sales_record` upsert.
+   - 또는 `backend/scripts/load_csv.py` — API 키 없이 CSV로 같은 파이프라인 적재.
+3. **`prediction_record`** — n8n 배치(또는 `POST /predict/batch`)가 채움.
 
 > Alembic은 도입하지 않는다. 스키마 변경 시 `init.sql`을 직접 수정하고 DB 볼륨 재생성. MVP 단계에선 마이그레이션 비용보다 단순함이 이득.

@@ -13,7 +13,7 @@
 ## 공통 규약
 
 - 모든 응답은 JSON. 시각은 ISO 8601, 금액은 정수(원).
-- 분기 표기: `YYYYQn` (예: `2024Q4`).
+- 분기 표기: API 수준에서는 `YYYYQn` (예: `2024Q4`) 형식을 사용하며, 프론트엔드 차트 등에서는 `YYYY_n` (예: `2024_4`)으로 변환하여 표시합니다.
 - 업종 코드 (`industry`): `food` / `service` / `retail` 중 하나.
 - 내부 호출 엔드포인트(`/api/ingest/*`, `/predict/*`)는 `X-Internal-Token` 헤더 검사.
 

@@ -1,154 +1,147 @@
-# GUIDELINE
+# SalesMap 실행 가이드 — 처음 시작하는 분들을 위해
 
-SalesMap 프로젝트 작업·협업 가이드. 짧고 실용 위주.
+SalesMap을 처음 내려받은 분들이 **Docker 기동 → 서버 실행 → 데이터 수집 → 화면 확인**까지
+가장 쉽고 빠르게 따라 할 수 있도록 정리했습니다. 아래 순서대로 명령어를 복사해서 사용하세요.
 
-## 1. 처음 한 번만
+---
 
-### 1-1. 사전 요구사항
+## 0. 전체 구조 (아키텍처 요약)
 
-| 도구 | 권장 버전 |
-|------|-----------|
-| Docker Desktop | 최신 |
-| Node.js | 20.x (frontend용) |
-| pnpm | 9.x (`npm i -g pnpm`) |
-| Python | **3.11 권장** (3.14는 일부 ML 패키지 wheel 미흡) |
-| Git | 최신 |
+*   **Docker (DB + n8n)**: 데이터 저장소와 배치 작업을 담당합니다.
+*   **Backend (FastAPI, :8000)**: 공공 API 수집과 데이터 조회를 담당합니다.
+*   **AI 서버 (FastAPI, :8100)**: 과거 매출 기반 미래 예측을 담당합니다.
+*   **Frontend (React, :5173)**: 서울 지도를 통해 시각적으로 정보를 보여줍니다.
 
-> 본 레포는 macOS + iCloud Drive 안에 있다. `node_modules`, `.venv`, Docker 볼륨은 동기화 대상이 아니어야 한다. `.gitignore`로 제외되어 있고, iCloud는 폴더별로 동기화 제외가 어렵다면 적어도 폴더를 자주 동기화시키지 말 것.
+---
 
-### 1-2. 레포 클론 & 환경변수
+## 1. 사전 준비물 (필수)
 
+| 도구 | 설치 확인 방법 |
+| :--- | :--- |
+| **Docker Desktop** | `docker version` (실행 중이어야 함) |
+| **Python 3.11+** | `python3 --version` (3.14도 가능) |
+| **Node.js 20+** | `node --version` |
+
+**체크포인트:** `8000`(BE), `8100`(AI), `5173`(FE), `5432`(DB), `5678`(n8n) 포트가 비어 있어야 합니다.
+
+---
+
+## 2. 처음 한 번만 수행 (셋업)
+
+### 2-1. 소스코드 다운로드
 ```bash
 git clone https://github.com/h-taek/DesignPagttern_SalesMap.git SalesMap
 cd SalesMap
+```
 
-# 환경변수 파일 복사 (필요시 값 수정)
+### 2-2. 환경 설정 파일 복사
+```bash
 cp backend/.env.example backend/.env
 cp ai/.env.example ai/.env
-# (Frontend는 Phase 4에서 추가)
 ```
+*   **중요:** `backend/.env`를 열어 `OPEN_API_KEY`에 발급받은 인증키를 넣으세요.
+*   [서울 열린데이터 광장](https://data.seoul.go.kr)에서 즉시 발급 가능합니다.
 
-### 1-3. Python venv (단일 통합)
-
-backend / ai는 **레포 루트의 `.venv` 하나**를 공유한다. requirements는 서비스별로 유지(의존성 차이 명확화)하지만 같은 venv에 모두 설치.
-
+### 2-3. Python 가상환경 및 라이브러리 설치
 ```bash
-# 레포 루트에서
 python3 -m venv .venv
-.venv/bin/pip install -r backend/requirements.txt -r ai/requirements.txt
+source .venv/bin/activate  # Windows는 .venv\Scripts\activate
+pip install -r backend/requirements.txt -r ai/requirements.txt
 ```
 
-3.14에서 `scikit-learn`/`pandas`/`numpy`가 빌드 실패하면 Python 3.11을 별도로 설치해 `python3.11 -m venv .venv`로 재생성한다.
-
-## 2. 매일 동작
-
-Docker로 띄우는 것은 외부 의존 서비스(DB, n8n)뿐. backend / ai / frontend는 각자 로컬 dev 서버로 실행한다.
-
+### 2-4. Frontend 라이브러리 설치
 ```bash
-# 1. 인프라 기동 (한 번만)
-cd infra
-docker compose up -d            # postgres + n8n
+cd frontend
+npm install
 cd ..
-
-# 2. backend (별도 터미널, 레포 루트에서)
-.venv/bin/uvicorn app.main:app --reload --port 8000 --app-dir backend
-
-# 3. ai (별도 터미널, 레포 루트에서)
-.venv/bin/uvicorn app.main:app --reload --port 8100 --app-dir ai
-
-# 4. frontend (별도 터미널, Phase 4 이후)
-cd frontend && pnpm dev
 ```
 
-> `--app-dir` 로 working dir만 바꿔 module을 해석시키고, venv는 루트 하나를 그대로 쓴다.
+---
 
-### 빠른 확인
+## 3. 서버 실행 순서 (매번 동일)
 
+터미널 4개를 열고 각각 실행하세요. 모든 명령은 **프로젝트 루트(`SalesMap/`)** 기준입니다.
+
+### ① Docker (DB & n8n) 실행
 ```bash
-curl http://localhost:8000/healthz   # {"status":"ok","service":"backend"}
-curl http://localhost:8100/healthz   # {"status":"ok","service":"ai"}
-# DB
-docker exec -it salesmap-db psql -U salesmap -d salesmap -c "SELECT COUNT(*) FROM region;"
-# n8n
-open http://localhost:5678
+cd infra && docker compose up -d && cd ..
+```
+*   데이터베이스와 자동화 도구가 배경에서 돌아갑니다.
+
+### ② Backend 실행 (포트 8000)
+```bash
+.venv/bin/uvicorn app.main:app --reload --port 8000 --app-dir backend
+```
+*   **주의:** `--app-dir backend` 옵션이 없으면 서버가 시작되지 않습니다.
+
+### ③ AI 서버 실행 (포트 8100)
+```bash
+.venv/bin/uvicorn app.main:app --reload --port 8100 --app-dir ai
 ```
 
-## 3. 디렉토리 약속
-
+### ④ Frontend 실행 (포트 5173)
+```bash
+cd frontend && npm run dev
 ```
-SalesMap/
-├── docs/             # 설계·운영 문서 (변경 시 PR에서 같이 갱신)
-├── infra/            # docker-compose, db init/seed, n8n workflow JSON
-├── backend/          # FastAPI 백엔드 (사용자 조회 + ingest)
-├── ai/               # FastAPI AI 서버 (예측 배치)
-├── frontend/         # React + Vite (Phase 4)
-├── GUIDELINE.md      # ← 본 문서
-└── README.md
-```
+*   이제 브라우저에서 `http://localhost:5173`에 접속할 수 있습니다.
 
-각 서비스 폴더 내부 구조는 [docs/02-architecture.md](docs/02-architecture.md) 의 "디렉토리 구조" 참고.
+---
 
-## 4. 작업 규칙
+## 4. 데이터 채우기 (최초 1회 필수)
 
-### 브랜치
+서버만 띄우면 지도는 보이지만 매출 데이터는 없습니다. 아래 방법 중 하나를 선택하세요.
 
-- 메인: `main`
-- 작업: `feat/<짧은-슬러그>`, `fix/<…>`, `docs/<…>`
-- 멤버별 prefix는 안 씀 (PR author로 추적).
-
-### 커밋 메시지
-
-Conventional Commits 약식:
-
-```
-feat(backend): add /api/regions endpoint
-fix(ai): handle empty training set
-docs(04): update sales_record schema
-chore(infra): bump postgres to 16.2
+### 방법 A: API로 직접 수집 (추천)
+인증키가 있다면 아래 명령어로 최신 분기 데이터를 가져옵니다.
+```bash
+curl -X POST http://localhost:8000/api/ingest/sales \
+  -H "X-Internal-Token: dev-internal-token" \
+  -H "Content-Type: application/json" \
+  -d '{"quarters": ["2024Q4"]}'
 ```
 
-본문(선택)은 **왜** 위주. 줄 길이 72자.
+### 방법 B: n8n으로 자동 수집
+1. `http://localhost:5678` 접속 후 초기 계정 생성.
+2. `infra/n8n/workflows/quarterly-ingest-and-predict.json` 파일을 화면에 끌어다 놓기(Import).
+3. **"Execute Workflow"** 클릭. (BE 수집과 AI 예측이 한 번에 진행됩니다.)
 
-### PR
+### AI 예측 데이터 생성
+수집이 끝났다면(방법 A 사용 시), 예측 데이터도 만들어야 합니다.
+```bash
+curl -X POST http://localhost:8100/predict/batch \
+  -H "X-Internal-Token: dev-internal-token" \
+  -H "Content-Type: application/json" \
+  -d '{"lookbackQuarters": 16}'
+```
 
-- PR 1개 = 1가지 변경. 50~300 line diff 권장.
-- `docs/`에 영향이 가는 변경이면 같은 PR에서 docs도 갱신.
-- 리뷰 없으면 24h 후 self-merge 가능. 단, CI(있으면) 통과 필수.
+---
 
-### 코드 스타일
+## 5. 변경된 UI 확인하기
 
-- Python: `ruff` + `black` 사용 권장 (셋업 후 결정). type hint 적극.
-- TypeScript: ESLint + Prettier 기본 셋업.
-- import 정렬, 미사용 변수 제거 등은 도구가 강제.
+정상적으로 데이터가 들어갔다면 지도에서 특정 구를 클릭했을 때 다음을 확인할 수 있습니다:
 
-## 5. 환경변수 / 비밀값
+*   **예측 퍼센트 표시:** 매출 금액 옆에 `(▲ 15.2%)` 같이 이전 분기 대비 변동폭이 보입니다.
+*   **차트 라벨:** 하단 차트의 X축이 `2024_4` 같이 깔끔한 형식으로 표시됩니다.
+*   **지도 애니메이션:** 구를 클릭하면 부드럽게 확대되며 해당 지역이 강조됩니다.
 
-- 실제 값은 `.env`에만 두고 절대 커밋 금지 (`.gitignore`에 포함됨).
-- 새 변수를 추가하면 같은 PR에서 `.env.example`도 갱신.
-- `INTERNAL_TOKEN`은 BE/AI/n8n에 같은 값. n8n에는 credential로 등록.
+---
 
-## 6. 문서 갱신 원칙
+## 6. 자주 발생하는 문제 해결 (FAQ)
 
-> 코드가 docs를 바꿔야 하면, 그 PR에서 같이 바꾼다.
+| 증상 | 해결 방법 |
+| :--- | :--- |
+| `ModuleNotFoundError: No module named 'app'` | 실행 명령어에 `--app-dir backend` 또는 `--app-dir ai`가 빠졌는지 확인하세요. |
+| 지도는 나오는데 데이터가 '없음'으로 뜸 | **4번 단계(데이터 채우기)**를 수행했는지 확인하세요. |
+| n8n에서 연결 오류 발생 | n8n 컨테이너는 호스트를 `host.docker.internal`로 바라봐야 합니다. 워크플로우 URL 설정을 확인하세요. |
+| API 수집 시 502 에러 | `backend/.env`에 `OPEN_API_KEY`를 정확히 입력했는지 확인하세요. |
+| DB를 완전히 초기화하고 싶을 때 | `cd infra && docker compose down -v` 실행 후 다시 `up -d` 하세요 (모든 데이터 삭제됨). |
 
-- 새 엔드포인트 → `05-api.md`
-- DB 스키마 변경 → `04-data-model.md`
-- 배치 흐름 변경 → `02-architecture.md`, `07-batch-prediction.md`
-- 새 외부 의존성 → `06-dev-setup.md`, `08-external-api.md`
+---
 
-문서 인덱스는 [docs/README.md](docs/README.md).
+## 7. 주요 문서 링크 (더 자세히 알고 싶다면)
 
-## 7. 자주 부딪히는 이슈
-
-| 증상 | 원인 / 해결 |
-|------|------------|
-| BE/AI에서 DB 접속 실패 | DB가 아직 healthcheck 통과 전이거나 컨테이너 미기동. `docker compose ps`로 상태 확인. 호스트에서는 `localhost:5432`로 접속. |
-| n8n 컨테이너에서 BE/AI 호출이 connection refused | n8n은 컨테이너, BE/AI는 호스트 로컬이므로 n8n의 HTTP 노드 URL을 `host.docker.internal:8000` / `:8100`으로. Linux는 compose에 `extra_hosts: ["host.docker.internal:host-gateway"]` 추가. |
-| CORS 차단 | `backend/.env`의 `CORS_ORIGINS`에 frontend dev origin 추가. |
-| Python 3.14에서 `scikit-learn` install 실패 | Python 3.11로 venv 재생성 또는 AI는 Docker로만 실행. |
-| iCloud 동기화로 IO 느림 | `.venv`/`node_modules`/`pgdata` 폴더는 iCloud 동기화 제외(가능하면). 최소한 자주 변경되는 동안 동기화를 일시 정지. |
-
-## 8. 다음 작업 진입점
-
-- 진행 중인 작업: [docs/03-mvp.md](docs/03-mvp.md) 마일스톤 M1~M5 참고.
-- 본격 코드를 채우기 전 항상 관련 docs 읽기.
+*   [아키텍처 및 시스템 흐름 (docs/02)](docs/02-architecture.md)
+*   [API 명세서 (docs/05)](docs/05-api.md)
+*   [배치 및 예측 자동화 설명 (docs/07)](docs/07-batch-prediction.md)
+*   [프론트엔드 UI 설계 (docs/09)](docs/09-frontend.md)
+*   [디자인 패턴 적용 사례 (docs/10)](docs/10-design-patterns.md)

@@ -48,7 +48,7 @@
         "specifyBody": "json",
         "jsonBody": "{\n  \"regionIds\": null,\n  \"quarters\": null,\n  \"industries\": null,\n  \"source\": \"OA-15572\"\n}",
         "options": {
-          "timeout": 120000,
+          "timeout": 600000,
           "response": {
             "response": {
               "neverError": false
@@ -56,9 +56,8 @@
           }
         }
       },
-      "retryOnFail": true,
-      "maxTries": 3,
-      "waitBetweenTries": 5000
+      "retryOnFail": false,
+      "maxTries": 1
     },
     {
       "id": "if-accepted",

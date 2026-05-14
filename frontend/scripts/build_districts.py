@@ -32,14 +32,13 @@ SGG_CODE = {
 }
 
 W = 1000
-PAD = 24
-SMOOTH_SAMPLES = 12  # arc 한 세그먼트당 Catmull-Rom 보간점 수 (더 부드럽게)
-SIMPLIFY_TOLERANCE = 0.002  # Douglas-Peucker 단순화 임계값 (더 단순하게)
+PAD = 50
+SMOOTH_SAMPLES = 12  # arc 한 세그먼트당 Catmull-Rom 보간점 수
 
-# polylabel 결과가 시각적으로 어색한 구의 라벨 미세 조정 (viewBox 좌표 오프셋).
+# 라벨(무게중심) 미세 조정이 필요한 구의 viewBox 좌표 오프셋.
 LABEL_OFFSET = {
-    "11110": (0.0, 40.0),   # 종로구 — 더 아래로 내려 중앙에 가깝게
-    "11140": (-60.0, 5.0),  # 중구 — 더 왼쪽으로 당김
+    "11110": (-17.0, 0.0),  # 종로구 — 왼쪽으로 약간 이동
+    "11140": (0.0, 0.0),    # 중구
 }
 
 _HERE = Path(__file__).resolve().parent
@@ -47,7 +46,7 @@ _SRC = _HERE / "seoul_municipalities_topo.json"
 _OUT = _HERE.parent / "src" / "assets" / "seoul-districts.json"
 
 
-# ---- TopoJSON 디코딩 & 단순화 ------------------------------------------------
+# ---- TopoJSON 디코딩 ------------------------------------------------------
 
 def decode_arcs(topo: dict) -> list[list[tuple[float, float]]]:
     """delta-encoded arcs → 절대 경위도 좌표 arc 리스트."""
@@ -63,36 +62,6 @@ def decode_arcs(topo: dict) -> list[list[tuple[float, float]]]:
             ring.append((x * sx + tx, y * sy + ty))
         arcs.append(ring)
     return arcs
-
-
-def simplify_arc(arc: list[tuple[float, float]], tolerance: float) -> list[tuple[float, float]]:
-    """Douglas-Peucker 단순화 알고리즘."""
-    if len(arc) <= 2:
-        return list(arc)
-
-    def _dist_sq(p, a, b):
-        dx, dy = b[0] - a[0], b[1] - a[1]
-        if dx == 0 and dy == 0:
-            return (p[0] - a[0])**2 + (p[1] - a[1])**2
-        t = ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy)
-        t = max(0, min(1, t))
-        return (p[0] - (a[0] + t * dx))**2 + (p[1] - (a[1] + t * dy))**2
-
-    dmax_sq = 0
-    idx = 0
-    tol_sq = tolerance * tolerance
-    for i in range(1, len(arc) - 1):
-        d_sq = _dist_sq(arc[i], arc[0], arc[-1])
-        if d_sq > dmax_sq:
-            idx = i
-            dmax_sq = d_sq
-
-    if dmax_sq > tol_sq:
-        res1 = simplify_arc(arc[:idx + 1], tolerance)
-        res2 = simplify_arc(arc[idx:], tolerance)
-        return res1[:-1] + res2
-    else:
-        return [arc[0], arc[-1]]
 
 
 def assemble_ring(arc_indices: list[int], arcs: list) -> list[tuple[float, float]]:
@@ -220,9 +189,7 @@ def label_point(rings: list, grid: int = 160) -> tuple[float, float]:
 def main() -> None:
     topo = json.loads(_SRC.read_text(encoding="utf-8"))
     raw_arcs = decode_arcs(topo)
-    # 1. 단순화 (Douglas-Peucker) -> 2. 곡선화 (Catmull-Rom)
-    simplified_arcs = [simplify_arc(a, tolerance=SIMPLIFY_TOLERANCE) for a in raw_arcs]
-    smooth_arcs = [smooth_arc(a) for a in simplified_arcs]
+    smooth_arcs = [smooth_arc(a) for a in raw_arcs]
     geometries = topo["objects"]["seoul_municipalities_geo"]["geometries"]
 
     # 투영 파라미터 — 곡선화된 좌표 기준 bbox (Catmull-Rom 살짝 overshoot 대비)
@@ -259,8 +226,9 @@ def main() -> None:
         raw_rings = [assemble_ring(ri, raw_arcs) for ri in g["arcs"]]
 
         path = " ".join(ring_path(r) for r in smooth_rings)
-        # 라벨은 점이 적은 raw ring으로 polylabel 계산 (속도)
-        cx, cy = label_point(raw_rings)
+        # 라벨은 면적이 가장 큰 ring의 무게중심(centroid)에 둔다.
+        outer = max(raw_rings, key=lambda r: abs(ring_area(r)))
+        cx, cy = ring_centroid(outer)
         lx, ly = project(cx, cy)
         dx, dy = LABEL_OFFSET.get(SGG_CODE[name], (0.0, 0.0))
         lx += dx
@@ -278,7 +246,7 @@ def main() -> None:
     districts.sort(key=lambda d: d["sggCode"])
     out = {
         "_comment": (
-            "서울 25개 자치구 SVG path (TopoJSON arc 단위 단순화 및 Catmull-Rom 곡선화 — 구 사이 틈 없음). "
+            "서울 25개 자치구 SVG path (TopoJSON arc 단위 Catmull-Rom 곡선화 — 구 사이 틈 없음). "
             "출처: github.com/southkorea/seoul-maps (KOSTAT 2013 topo_simple). "
             "sggCode는 행정안전부 표준 시군구 코드. "
             "재생성: python3 frontend/scripts/build_districts.py"

@@ -1,10 +1,20 @@
 import logging
-
+from pathlib import Path
 import structlog
 
+_LOG_FILE = Path(__file__).resolve().parents[2] / "app.log"
 
 def configure_logging() -> None:
-    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    # 워크스페이스 내 파일로도 로그 저장 (에이전트가 읽을 수 있도록)
+    file_handler = logging.FileHandler(_LOG_FILE)
+    file_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s"))
+    
+    logging.basicConfig(
+        level=logging.INFO, 
+        format="%(message)s",
+        handlers=[logging.StreamHandler(), file_handler]
+    )
+    
     structlog.configure(
         processors=[
             structlog.contextvars.merge_contextvars,

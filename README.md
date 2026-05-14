@@ -25,12 +25,13 @@
 ```
 SalesMap/
 ├── README.md
-├── docs/                  # 설계/운영 문서
-├── frontend/              # React 앱 (예정)
-├── backend/               # FastAPI 백엔드 (예정)
-├── ai/                    # FastAPI AI 서버 (예정)
-├── infra/                 # docker-compose, n8n 워크플로우 (예정)
-└── data/                  # 원천 CSV 등 (예정, gitignore)
+├── GUIDELINE.md           # 초보자를 위한 빠른 실행 가이드 (추천)
+├── docs/                  # 설계/운영 상세 문서
+├── frontend/              # React 앱 (Vite)
+├── backend/               # FastAPI 백엔드 (API 수집 및 제공)
+├── ai/                    # FastAPI AI 서버 (선형회귀 예측)
+├── infra/                 # docker-compose (DB, n8n), 워크플로우
+└── data/                  # (선택) 원천 CSV 저장소
 ```
 
 ## 문서

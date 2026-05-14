@@ -58,20 +58,18 @@
 5. 차트용 과거 추이는 별도 `GET .../sales/history?industry=...&quarters=...` 호출로 받는다.
 6. Frontend가 팝업/차트로 렌더링.
 
-### 배치 데이터 수집 + 예측 (분기 단위, 하이브리드)
+### 배치 데이터 수집 + 예측 (하이브리드 방식 확정)
 
-n8n은 **스케줄링·오케스트레이션·재시도·실패 알림**만 담당하고, 실제 외부 API 호출/매핑/저장 같은 도메인 로직은 BE와 AI 서버 코드에서 처리한다. n8n에서는 HTTP 노드 2개를 순차 호출한다.
+n8n은 **스케줄링 및 오케스트레이션**만 담당하고, 실제 외부 API 호출 및 데이터 가공은 백엔드(BE)의 서비스 계층에서 처리하는 하이브리드 구조를 채택했습니다. 이는 도메인 로직의 응집도를 높이고 테스트를 용이하게 합니다.
 
-1. n8n 워크플로우가 cron으로 트리거 (분기 시작 시점, 예: `0 3 1 1,4,7,10 *` — 1/4/7/10월 1일 03:00 KST). 검증 단계에서는 짧은 주기로 두고 결과 확인 후 되돌린다.
-2. **Step 1 — Ingest**: n8n → BE `POST /api/ingest/sales`.
-   - BE의 `SalesIngestService`가 OA-15572 Open API(또는 CSV)를 호출.
-   - 응답 행 단위로 (`상권 → 행정동 → 자치구`) 매핑 + 100개 서비스 업종 → 3개 대분류 매핑 + 단위/NULL 검증.
-   - 자치구 × 분기 × 업종 대분류로 합산.
-   - `(region_id, quarter, industry_category)` 기준 upsert로 `sales_record`에 저장.
-   - 응답: 처리/성공/실패 카운트와 실패 사유.
-3. **Step 2 — Predict**: Step 1이 성공이면 n8n → AI `POST /predict/batch`.
-   - AI 서버는 셀(`region × industry`) 단위로 DB의 최근 N 분기 매출을 읽어 `LRModel.train` → 다음 분기 `predict` → `prediction_record`에 저장.
-   - 25 구 × 3 업종 = 75 셀.
+1. n8n 워크플로우가 cron으로 트리거 (분기 단위 실행).
+2. **Step 1 — Ingest**: n8n → BE `POST /api/ingest/sales` 호출.
+   - BE가 서울 열린데이터 광장 API를 호출하여 데이터를 가져옵니다.
+   - 상권-행정동-자치구 매핑 및 업종 대분류 합산 작업을 수행합니다.
+   - 결과를 `sales_record` 테이블에 upsert 방식으로 저장합니다.
+3. **Step 2 — Predict**: Ingest 성공 시 n8n → AI 서버 `POST /predict/batch` 호출.
+   - AI 서버가 DB에서 매출 데이터를 읽어 선형회귀 모델을 학습하고 다음 분기를 예측합니다.
+   - 결과를 `prediction_record` 테이블에 저장합니다.
 4. n8n은 결과를 로그/알림 분기로 마무리. 어느 단계에서 실패해도 동일 워크플로우 재실행으로 복구 가능 (멱등 — ingest는 upsert, predict는 동일 `(region, industry, target_quarter)`에 새 row 누적, 사용자 조회는 `generated_at DESC LIMIT 1`).
 5. Backend의 사용자 조회 요청은 이 테이블들을 그대로 읽어 즉시 응답.
 

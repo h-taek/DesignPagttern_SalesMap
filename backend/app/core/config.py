@@ -1,9 +1,15 @@
+import logging
+from pathlib import Path
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# 실행 위치(CWD)와 무관하게 backend/.env 를 찾도록 절대경로로 고정.
+_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=_ENV_FILE, extra="ignore")
 
     database_url: str = Field(
         default="postgresql+psycopg://salesmap:salesmap@localhost:5432/salesmap",
@@ -22,3 +28,10 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# 서버 기동 시 키 로드 여부 확인 (마스킹 처리)
+if settings.open_api_key:
+    masked = settings.open_api_key[:4] + "****" if len(settings.open_api_key) > 4 else "****"
+    logging.info(f"Loaded OPEN_API_KEY: {masked}")
+else:
+    logging.warning("OPEN_API_KEY is NOT loaded (empty or missing in .env)")

@@ -28,33 +28,18 @@ n8n 노드 구성:
 2. **HTTP Request — Ingest (BE)**:
    - Method: `POST`
    - URL: `http://host.docker.internal:8000/api/ingest/sales`
-   - Headers: `X-Internal-Token: {{$credentials.internalToken}}`
-   - Body:
-     ```json
-     {
-       "regionIds": null,
-       "quarters": null,
-       "industries": null,
-       "source": "OA-15572"
-     }
-     ```
-   - Timeout: 120s (OA-15572 응답 시간 + 행 수 고려).
-   - Retry: 3회, 지수 백오프.
-3. **IF 노드**: `{{$json.acceptedRows}} > 0` 인지 확인 (Ingest 응답의 camelCase 필드). 새 분기 데이터가 없거나 전건 실패면 Predict 단계를 건너뛴다.
+   - Headers: `X-Internal-Token: dev-internal-token`
+   - Body: `{ "regionIds": null, "quarters": null, "industries": null, "source": "OA-15572" }`
+     - `quarters: null` → 모든 가용 분기 데이터를 수집합니다.
+   - Timeout: **3600s** (대량 데이터 수집을 위해 1시간으로 연장).
+   - Retry: **없음** (`maxTries: 1`). 중복 호출 방지를 위해 재시도를 수행하지 않습니다.
+3. **IF 노드**: `{{$json.acceptedRows}} > 0` 또는 성공 여부를 확인합니다. 새 데이터가 없으면 Predict 단계를 건너뜁니다.
 4. **HTTP Request — Predict (AI)**:
    - Method: `POST`
    - URL: `http://host.docker.internal:8100/predict/batch`
-   - Headers: `X-Internal-Token: {{$credentials.internalToken}}`
-   - Body:
-     ```json
-     {
-       "regionIds": null,
-       "industries": null,
-       "targetQuarter": null,
-       "lookbackQuarters": 16
-     }
-     ```
-   - Retry: 2회.
+   - Headers: `X-Internal-Token: dev-internal-token`
+   - Body: `{ "regionIds": null, "industries": null, "targetQuarter": null, "lookbackQuarters": 16 }`
+   - Retry: 2회 (로컬 AI 서버 호출이라 가벼움).
 5. **Notify / Log** (선택, MVP는 단순 로그):
    - `failedRegions > 0` 또는 `failedCells > 0` 또는 HTTP non-2xx → 콘솔/Slack.
    - 정상 → 실행 메타데이터(`processedRegions`, `processedCells`, `targetQuarter`)만 로그.
@@ -69,15 +54,15 @@ n8n 노드 구성:
 
 1. `cd infra && docker compose up -d` (postgres, n8n 기동).
 2. BE, AI 서버를 로컬에서 기동 ([06-dev-setup.md](06-dev-setup.md)).
-3. `http://localhost:5678` 접속, 초기 계정 생성, `INTERNAL_TOKEN` credential 등록.
-4. `infra/n8n/workflows/quarterly-ingest-and-predict.json` 임포트.
+3. `http://localhost:5678` 접속, 초기 계정 생성.
+4. `infra/n8n/workflows/quarterly-ingest-and-predict.json` 임포트. (credential은 export에 없지만, 이 워크플로우는 헤더에 토큰을 직접 박아둬서 별도 등록 불필요.)
 5. URL이 `host.docker.internal:8000` / `:8100`인지 확인 (Linux는 `--add-host=host.docker.internal:host-gateway`).
 6. "Execute Workflow" 클릭 → 두 HTTP 노드 모두 2xx → DB의 `sales_record` (구 25 × 업종 3 = 75 row/분기), `prediction_record` (75 row) 증가 확인.
 
 ## 인증 / 비밀값 관리
 
 - 외부 공공데이터 API 키(`OPEN_API_KEY`)는 **BE의 `.env`**에 둔다. 호출 주체가 BE이므로 n8n은 모름.
-- **내부 API 보호**: `POST /api/ingest/sales` 와 `POST /predict/batch` 둘 다 `X-Internal-Token` 헤더 검사. n8n에는 동일 토큰을 credential로 보관.
+- **내부 API 보호**: `POST /api/ingest/sales` 와 `POST /predict/batch` 둘 다 `X-Internal-Token` 헤더 검사. n8n HTTP 노드 헤더에 토큰 값을 직접 입력한다 (로컬 프로젝트라 n8n credential 미사용).
 - 로컬 프로젝트라 보안 수준은 토큰 1줄 검사까지만 (자세한 의사결정은 [03-mvp.md](03-mvp.md)).
 
 ## AI 서버 측 처리 흐름
@@ -96,7 +81,7 @@ n8n 노드 구성:
 ## 워크플로우 버전 관리
 
 - n8n에서 워크플로우 export → `infra/n8n/workflows/*.json`으로 커밋.
-- credential은 export에 포함되지 않으므로 README에 별도 안내.
+- 파일을 수정해도 n8n이 자동 반영하지 않는다. n8n UI에서 다시 임포트하거나 노드 값을 직접 수정한다.
 
 ## 운영 시 고려 (MVP 이후)
 

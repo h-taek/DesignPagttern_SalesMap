@@ -39,6 +39,9 @@ yarn-error.log*
 .env.*
 !.env.example
 
+# ---- Logs ----
+*.log
+
 # ---- Docker / DB ----
 *.sqlite
 *.sqlite3

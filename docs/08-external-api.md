@@ -1,6 +1,9 @@
 # 08. 외부 데이터 API (OA-15572)
 
-본 프로젝트는 **서울 열린데이터 광장**의 **OA-15572 — 상권분석서비스(추정매출-상권)** 한 가지 소스를 사용한다.
+본 프로젝트는 **서울 열린데이터 광장**의 두 데이터셋을 쓴다.
+
+- **OA-15572 — 상권분석서비스(추정매출-상권)**: 매출 원천 데이터 (주 소스).
+- **OA-15560 — 상권분석서비스(상권영역)**: 상권 코드 → 자치구 매핑용 (보조). OA-15572에 자치구 컬럼이 없어 필요.
 
 - 데이터셋: <https://data.seoul.go.kr/dataList/OA-15572/S/1/datasetView.do>
 - 제공 형식: **Open API (XML/JSON)** + **CSV(zip) 다운로드**
@@ -43,8 +46,8 @@
 |------|------|------|
 | `STDR_YYQU_CD` (`기준_년_분기_코드`) | 예: `20244` (2024Q4) | `quarter`로 변환 |
 | `TRDAR_SE_CD`, `TRDAR_SE_CD_NM` | 상권 구분 코드/명 | 골목/발달/전통/관광특구 |
-| `TRDAR_CD`, `TRDAR_CD_NM` | 상권 코드/명 | 행정동 코드 조회 키 |
-| `SVC_INDUTY_CD`, `SVC_INDUTY_CD_NM` | 서비스 업종 코드/명 | 100개 세부 업종 |
+| `TRDAR_CD`, `TRDAR_CD_NM` | 상권 코드/명 | 자치구 환원 키 (OA-15560으로 매핑). **OA-15572에는 자치구·행정동 컬럼이 없음** |
+| `SVC_INDUTY_CD`, `SVC_INDUTY_CD_NM` | 서비스 업종 코드/명 | 2024Q4 실데이터 기준 62종 |
 | `THSMON_SELNG_AMT` (`당월_매출_금액`) | **분기 합계 매출** (원) | 컬럼명에 "당월"이지만 OA-15572는 분기 단위 |
 | `THSMON_SELNG_CO` (`당월_매출_건수`) | 분기 합계 결제 건수 | |
 | 그 외 요일·시간대·성별·연령 분해 컬럼 | MVP 미사용 | |
@@ -59,7 +62,7 @@
   ├─ THSMON_SELNG_AMT        (분기 매출)
   └─ THSMON_SELNG_CO         (분기 건수)
        │
-       ▼  (1) 상권 → 행정동 → 자치구 환원
+       ▼  (1) 상권 → 자치구 환원 (OA-15560 매핑 테이블)
        │  (2) 세부 업종 → 대분류 매핑 (food/service/retail)
        │  (3) (자치구, 분기, 대분류) 그룹 SUM
        ▼
@@ -68,34 +71,42 @@ sales_record
   total_sales=SUM(...), total_count=SUM(...)
 ```
 
+### 보조 데이터셋 — OA-15560 (상권영역)
+
+OA-15572에는 자치구·행정동 컬럼이 없고 **상권 코드(`TRDAR_CD`)만** 들어있다.
+상권 → 자치구 환원에는 **OA-15560 — 상권분석서비스(상권영역)** 를 보조로 쓴다.
+
+- 서비스명: `TbgisTrdarRelm`
+- 호출: `http://openapi.seoul.go.kr:8088/{KEY}/json/TbgisTrdarRelm/{START}/{END}`
+- 주요 컬럼: `TRDAR_CD`(상권 코드), `SIGNGU_CD`(자치구 코드), `ADSTRD_CD`(행정동 코드)
+- 약 1,650개 상권 전부에 자치구 코드가 붙어 있어, OA-15572 매출 데이터의 모든 상권을 자치구로 환원 가능.
+
 ### (1) 상권 → 자치구 매핑
 
-- `TRDAR_CD` ↔ 행정동 코드 매핑이 OA-15572 단독으로는 없음.
-- 보조 데이터셋 **"서울시 상권 영역 정보"** (`OA-15561` 또는 유사) 또는 빅데이터캠퍼스 제공 매핑표로 1회 적재.
-- 또는 상권 좌표(`XCNTS_VALUE`, `YDNTS_VALUE`)를 자치구 GeoJSON과 point-in-polygon으로 매핑 (PostGIS 또는 Python `shapely`).
-- 결과를 `region_dong_map` 혹은 별도 `trdar_region_map`에 저장.
+`backend/scripts/build_maps.py` 가 OA-15560을 호출해 `TRDAR_CD → SIGNGU_CD` 매핑을
+`infra/db/02-seed-trdar-map.sql` (region_trdar_map INSERT) 로 생성한다. 이 시드는
+`docker compose up` 시 initdb 단계에서 자동 적재된다.
 
-MVP는 가장 단순한 길로 **공식 상권 영역 데이터셋 1회 다운로드 → CSV 매핑표**로 적재한다. 자세한 설정은 적재 스크립트 주석에서.
+적재 후 BE의 `RegionResolver` 가 `sgg_code → dong_code → trdar_code` 순으로 자치구를
+환원한다. OA-15572 원본은 `trdar_code` 경로로 풀린다.
 
 ### (2) 세부 업종 → 대분류 매핑
 
-`infra/db/industry_map.csv` 한 파일로 관리.
+`infra/db/industry_map.csv` 한 파일로 관리. `build_maps.py` 가 OA-15572 실데이터의
+distinct 업종 코드를 추출해 자동 생성한다.
 
 ```
 svc_induty_cd,svc_induty_cd_nm,industry_category
 CS100001,한식음식점,food
-CS100002,중식음식점,food
-...
-CS200001,일반의류,retail
-...
-CS300001,세탁소,service
+CS200005,스포츠 강습,service
+CS300011,일반의류,retail
 ...
 ```
 
-규칙:
-- OA-15572 코드 정의서 기준 외식업 10종 → `food`
-- 서비스업 47종 → `service`
-- 소매업 43종 → `retail`
+규칙 — 코드 prefix로 분류 (2024Q4 실데이터 62종 전수 검수로 확인):
+- `CS1xxxxx` 외식업 10종 → `food`
+- `CS2xxxxx` 서비스업 21종 → `service`
+- `CS3xxxxx` 소매업 31종 → `retail`
 
 운영 중 신규 업종 코드가 들어오면 매핑 누락으로 처리하고 `errors`에 누적 (응답 207).
 

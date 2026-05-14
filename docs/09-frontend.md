@@ -114,8 +114,8 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
 - `sggCode`로 BE의 `region` 테이블(`sgg_code`)과 조인 → `regionId` 환원.
 - `path`: SVG path 데이터. `label`: 구 이름 표시 좌표.
-- **데이터 확보**: 서울 25구 GeoJSON(예: `southkorea-maps`, 공개 라이선스 확인)을 `d3-geo`의 `geoPath` 등으로 SVG 좌표계에 투영해 path 문자열로 변환. 변환은 1회성 빌드 스크립트 또는 수작업.
-- 현재 레포의 파일은 **placeholder 2개 구**(강남·종로)뿐 — 25구로 교체 필요.
+- **데이터 확보**: 서울 25구 TopoJSON(`southkorea-maps`)을 Catmull-Rom 곡선화 및 Polylabel/Centroid 보정을 통해 `frontend/scripts/build_districts.py`에서 생성.
+- 현재 **서울 25개 자치구 전체**가 실제 경계 데이터 기반으로 구현되어 있음.
 - `MapView`는 선택된 구의 `<path>` fill 색을 바꿔 강조하고, label은 `pointer-events:none`로 클릭을 path에 위임.
 
 ## 에러/빈 상태
