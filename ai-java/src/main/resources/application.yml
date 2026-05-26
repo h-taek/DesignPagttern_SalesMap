@@ -1,0 +1,20 @@
+server:
+  port: 8100
+
+spring:
+  application:
+    name: ai
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/salesmap}
+    username: ${DB_USERNAME:salesmap}
+    password: ${DB_PASSWORD:salesmap}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: UTC
+
+salesmap:
+  internal-token: ${INTERNAL_TOKEN:dev-internal-token}
+  predictor: ${PREDICTOR:lr}

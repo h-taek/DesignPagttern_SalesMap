@@ -1,0 +1,22 @@
+server:
+  port: 8000
+
+spring:
+  application:
+    name: backend
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/salesmap}
+    username: ${DB_USERNAME:salesmap}
+    password: ${DB_PASSWORD:salesmap}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: UTC
+
+salesmap:
+  cors-origins: ${CORS_ORIGINS:http://localhost:5173}
+  internal-token: ${INTERNAL_TOKEN:dev-internal-token}
+  open-api-key: ${OPEN_API_KEY:}
+  open-api-base: ${OPEN_API_BASE:http://openapi.seoul.go.kr:8088}

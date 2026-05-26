@@ -1,7 +1,8 @@
 # --- Agent ---
 .gemini/
 .claude/
-.agnets/
+.codex/
+.agents/
 
 # ---- OS ----
 .DS_Store
@@ -23,6 +24,14 @@ env/
 .mypy_cache/
 .ruff_cache/
 
+# ---- Java / Gradle ----
+.gradle/
+build/
+out/
+*.class
+bin/
+.gradletasknamecache
+
 # ---- Node / React ----
 node_modules/
 dist/
@@ -41,6 +50,7 @@ yarn-error.log*
 
 # ---- Logs ----
 *.log
+.dev-logs/
 
 # ---- Docker / DB ----
 *.sqlite
@@ -56,3 +66,4 @@ n8n_data/
 *.pkl
 *.joblib
 artifacts/
+.agentbridge/
