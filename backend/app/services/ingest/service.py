@@ -2,6 +2,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import structlog
 from sqlalchemy.orm import Session
 
 from app.repositories.sales import SalesRepository, SalesRow
@@ -10,6 +11,8 @@ from app.services.ingest.adapter import NormalizedRow, OpenApiRowAdapter
 from app.services.ingest.client import OpenApiClient
 from app.services.ingest.industry_map import IndustryMap
 from app.services.ingest.region_resolver import RegionResolver
+
+log = structlog.get_logger("backend.ingest.service")
 
 _DEFAULT_INDUSTRY_MAP_PATH = Path(__file__).resolve().parents[4] / "infra" / "db" / "industry_map.csv"
 
@@ -23,6 +26,8 @@ class IngestResult:
     accepted_rows: int
     upserted_rows: int
     failed_rows: int
+    deduped_rows: int = 0
+    negative_rows: int = 0
     errors: list[dict] = field(default_factory=list)
 
 
@@ -59,16 +64,25 @@ class SalesIngestService:
             quarters_api = [_to_api_quarter(q) for q in quarters] if quarters else [None]
             rows = self._fetch(quarters_api)
 
-        processed = accepted = failed = 0
+        processed = accepted = failed = deduped = negatives = 0
         errors: list[dict] = []
         normalized: list[NormalizedRow] = []
+        seen_raw: set[int] = set()
         for raw in rows:
             processed += 1
+            raw_key = _raw_fingerprint(raw)
+            if raw_key in seen_raw:
+                deduped += 1
+                continue
+            seen_raw.add(raw_key)
             result = self.adapter.adapt(raw)
             if isinstance(result, tuple):
                 failed += 1
+                reason = result[1]
+                if reason.startswith("NEGATIVE_"):
+                    negatives += 1
                 if len(errors) < 50:
-                    errors.append({"reason": result[1]})
+                    errors.append({"reason": reason})
                 continue
             if region_ids and result.region_id not in region_ids:
                 continue
@@ -83,6 +97,18 @@ class SalesIngestService:
         observed_quarters = sorted({r.quarter for r in normalized})
         observed_industries = sorted({r.industry for r in normalized})
 
+        log.info(
+            "ingest_done",
+            source=source,
+            processed=processed,
+            accepted=accepted,
+            failed=failed,
+            deduped=deduped,
+            negatives=negatives,
+            upserted=upserted,
+            quarters=observed_quarters,
+        )
+
         return IngestResult(
             source=source,
             quarters=observed_quarters or (quarters or []),
@@ -91,6 +117,8 @@ class SalesIngestService:
             accepted_rows=accepted,
             upserted_rows=upserted,
             failed_rows=failed,
+            deduped_rows=deduped,
+            negative_rows=negatives,
             errors=errors,
         )
 
@@ -118,6 +146,10 @@ class SalesIngestService:
                 )
             )
         return out
+
+
+def _raw_fingerprint(raw: dict) -> int:
+    return hash(tuple(sorted((k, str(v)) for k, v in raw.items())))
 
 
 def _to_api_quarter(q: str) -> str:

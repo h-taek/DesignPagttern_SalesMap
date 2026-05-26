@@ -76,4 +76,6 @@ class IngestResponse(_Out):
     accepted_rows: int
     upserted_rows: int
     failed_rows: int
+    deduped_rows: int = 0
+    negative_rows: int = 0
     errors: list[dict] = Field(default_factory=list)

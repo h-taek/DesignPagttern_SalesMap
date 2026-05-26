@@ -73,6 +73,11 @@ class OpenApiRowAdapter:
         except AdaptError as e:
             return None, f"{e.code}:{e.message}"
 
+        if sales < 0:
+            return None, f"NEGATIVE_SALES:{sales}"
+        if count_int is not None and count_int < 0:
+            return None, f"NEGATIVE_COUNT:{count_int}"
+
         svc_cd = _pick(raw, _COL_INDUSTRY)
         if not svc_cd:
             return None, "MISSING_INDUSTRY_CODE"

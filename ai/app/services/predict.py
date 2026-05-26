@@ -1,6 +1,8 @@
+import statistics
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+import structlog
 from sqlalchemy.orm import Session
 
 from app import quarter as q
@@ -10,6 +12,8 @@ from app.predictor.factory import create_predictor
 from app.repositories.prediction import PredictionRepository
 from app.repositories.sales import SalesRepository
 from app.schemas import IndustryCategory
+
+log = structlog.get_logger("ai.predict")
 
 _INDUSTRIES: list[IndustryCategory] = ["food", "service", "retail"]
 
@@ -68,11 +72,27 @@ class PredictionGenerateService:
         if len(records) < 2:
             raise NotEnoughData(f"need >= 2 quarters, got {len(records)}")
 
-        xs = [q.to_index(r.quarter) for r in records]
-        ys = [r.total_sales for r in records]
+        quarters = [r.quarter for r in records]
+        sales = [r.total_sales for r in records]
+        raw_n = len(records)
+        quarters, sales, filled = _forward_fill_quarters(quarters, sales)
+        sales, clipped = _clip_outliers_iqr(sales)
+        if filled or clipped:
+            log.info(
+                "preprocess_applied",
+                region_id=region_id,
+                industry=industry,
+                raw_samples=raw_n,
+                final_samples=len(sales),
+                filled_quarters=filled,
+                clipped_values=clipped,
+            )
+
+        xs = [q.to_index(qq) for qq in quarters]
+        ys = sales
 
         # target_quarter 미지정 시 최신 분기의 다음 분기
-        latest_q = records[-1].quarter
+        latest_q = quarters[-1]
         tq = target_quarter or q.next_quarter(latest_q)
 
         predictor = create_predictor(self.predictor_name)
@@ -146,3 +166,48 @@ class PredictionGenerateService:
 
 def utcnow() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _forward_fill_quarters(
+    quarters: list[str], sales: list[int]
+) -> tuple[list[str], list[int], int]:
+    """records 사이에 빠진 분기를 직전 값으로 채워 연속 시계열로 만든다.
+
+    Returns: (quarters, sales, filled_count)
+    """
+    if len(quarters) < 2:
+        return quarters, sales, 0
+    start_idx = q.to_index(quarters[0])
+    end_idx = q.to_index(quarters[-1])
+    known = {q.to_index(qq): v for qq, v in zip(quarters, sales)}
+    out_q: list[str] = []
+    out_v: list[int] = []
+    filled = 0
+    last_val = sales[0]
+    for i in range(start_idx, end_idx + 1):
+        out_q.append(q.from_index(i))
+        if i in known:
+            last_val = known[i]
+        else:
+            filled += 1
+        out_v.append(last_val)
+    return out_q, out_v, filled
+
+
+def _clip_outliers_iqr(values: list[int], k: float = 1.5) -> tuple[list[int], int]:
+    """튜키 IQR 기준 outlier를 [Q1 - k·IQR, Q3 + k·IQR] 경계로 clip.
+
+    표본이 8개 미만이거나 IQR이 0이면 분위수 추정이 불안정해 패스.
+    Returns: (clipped_values, clipped_count)
+    """
+    n = len(values)
+    if n < 8:
+        return values, 0
+    q1, _, q3 = statistics.quantiles(values, n=4)
+    iqr = q3 - q1
+    if iqr == 0:
+        return values, 0
+    lo = q1 - k * iqr
+    hi = q3 + k * iqr
+    clipped = sum(1 for v in values if v < lo or v > hi)
+    return [int(round(min(max(v, lo), hi))) for v in values], clipped
