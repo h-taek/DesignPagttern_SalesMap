@@ -1,7 +1,10 @@
 # --- Agent ---
 .gemini/
 .claude/
-.agnets/
+.agents/
+.codex/
+.agentbridge
+
 
 # ---- OS ----
 .DS_Store
@@ -39,8 +42,12 @@ yarn-error.log*
 .env.*
 !.env.example
 
+# ---- Gradle / Java ----
+.gradle/
+
 # ---- Logs ----
 *.log
+.dev-logs/
 
 # ---- Docker / DB ----
 *.sqlite
