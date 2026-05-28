@@ -66,7 +66,7 @@ public class SalesRepository {
         String sql = """
             INSERT INTO sales_record (region_id, quarter, industry_category, total_sales, total_count)
             VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT ON CONSTRAINT uq_sales_region_quarter_industry
+            ON CONFLICT (region_id, quarter, industry_category)
             DO UPDATE SET total_sales = EXCLUDED.total_sales,
                           total_count = EXCLUDED.total_count
             """;

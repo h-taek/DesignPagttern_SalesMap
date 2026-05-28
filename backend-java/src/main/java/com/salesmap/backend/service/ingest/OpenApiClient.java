@@ -29,7 +29,10 @@ public class OpenApiClient {
     public OpenApiClient(Settings settings, ObjectMapper objectMapper) {
         this.settings = settings;
         this.objectMapper = objectMapper;
-        this.client = WebClient.builder().build();
+        // OA-15572 1페이지(1000행)가 기본 256KB 한도를 초과하므로 in-memory 버퍼를 16MB로 확대
+        this.client = WebClient.builder()
+            .codecs(c -> c.defaultCodecs().maxInMemorySize(16 * 1024 * 1024))
+            .build();
     }
 
     /** quarter는 '20244' 형식. null이면 전체. */
