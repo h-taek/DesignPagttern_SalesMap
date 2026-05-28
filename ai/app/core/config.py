@@ -3,8 +3,8 @@ from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# 실행 위치(CWD)와 무관하게 ai/.env 를 찾도록 절대경로로 고정.
-_ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+# 실행 위치(CWD)와 무관하게 저장소 루트의 .env 를 찾도록 절대경로로 고정.
+_ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
 
 
 class Settings(BaseSettings):
