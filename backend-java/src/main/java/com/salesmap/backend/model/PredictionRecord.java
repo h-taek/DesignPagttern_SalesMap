@@ -7,6 +7,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 
@@ -25,6 +27,7 @@ public class PredictionRecord {
     @Column(name = "industry_category", nullable = false, length = 10)
     private String industryCategory;
 
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "target_quarter", nullable = false, length = 6)
     private String targetQuarter;
 

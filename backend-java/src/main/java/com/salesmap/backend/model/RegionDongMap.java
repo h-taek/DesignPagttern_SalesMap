@@ -4,12 +4,15 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "region_dong_map")
 public class RegionDongMap {
 
     @Id
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "dong_code", length = 10)
     private String dongCode;
 

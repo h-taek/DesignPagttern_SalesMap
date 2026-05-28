@@ -4,6 +4,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "region")
@@ -16,6 +18,7 @@ public class Region {
     @Column(name = "region_name", nullable = false, length = 20)
     private String regionName;
 
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Column(name = "sgg_code", nullable = false, unique = true, length = 5)
     private String sggCode;
 
